@@ -1,0 +1,11 @@
+appId: com.example.bookmarker
+productName: Bookmarker
+directories:
+  output: dist
+files:
+  - "app/**/*"
+asar: false
+win:
+  target:
+    - target: "nsis"
+      arch: ["x64"]

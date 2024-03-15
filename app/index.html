@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="./style.css" type="text/css">
+  <title>Phần mềm quản lý tương tác</title>
+</head>
+
+<body>
+  <div class="container">
+
+    <img src="./tt286.png" alt="">
+
+    <h1>Quản lý tương tác Facebook</h1>
+
+    <div class="ketqua">
+      <textarea id="linkfb" rows="3" cols="30"></textarea>
+    </div>
+    <div id="blockD">
+      <label for="fileInput" class="custom-file-upload">
+        <span>Tải lên tệp tin</span>
+      </label>
+      <input type="file" id="dataFile" class="new-link-url" placehol der="URL" required>
+      <input type="button" id="btnEd" value="Kiểm tra tương tác" />
+      <input type="button" id="btnCmt" value="Thu thập bình luận" />
+      
+      <div class="ketqua">
+        <textarea id="webDataDisplay" rows="7" cols="40"></textarea>
+        <textarea id="webDataDisplayCMT" rows="7" cols="40"></textarea>
+      </div>
+
+      <select id="exportSelect">
+        <option value="chuaXem">Kiểm tra tương tác</option>
+        <option value="binhLuan">Nội dung bình luận</option>
+      </select>
+      <button id="exportDataButton">Xuất File</button>
+    </div>
+  </div>
+
+  <script src="./renderer.js"></script>
+</body>
+
+</html>

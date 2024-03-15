@@ -1,0 +1,30 @@
+{
+  "name": "bookmarker",
+  "version": "1.0.0",
+  "description": "An example Electron application.",
+  "main": "app/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
+  },
+  "repository": "git@github.com:electron-in-action/bookmarker.git",
+  "author": "Steve Kinney <hello@stevekinney.net> (http://stevekinney.net)",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "csv-parser": "^3.0.0",
+    "jsdom": "^24.0.0",
+    "puppeteer": "^21.11.0",
+    "puppeteer-cluster": "^0.23.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "electron": "^1.8.8",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4",
+    "electron-builder": "^24.13.3"
+  }
+}
