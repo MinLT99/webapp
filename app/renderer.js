@@ -97,10 +97,10 @@ function getData() {
           }
 
           // Trích xuất dữ liệu từ trang hiện tại bằng Puppeteer hoặc cách khác tùy thuộc vào môi trường của bạn
-          let danhsach_user = await page.$$eval('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]', el_list => {
-            return el_list.map(el => el.textContent);
+          let urlFB = await page.$$eval('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]', el_list => {
+            return el_list.map(link => link.href.split(/.__cft/)[0]);
           });
-
+          console.log(urlFB);
           // Hàm đọc người dùng từ file và chuyển thành mảng
           function readUsersFromFile(file) {
             return new Promise((resolve, reject) => {
@@ -108,7 +108,7 @@ function getData() {
 
               reader.onload = function (e) {
                 const fileContent = e.target.result;
-                const dataArray = fileContent.split('\n').map(line => line.split(',')).map(data => [data[0], {"hoten": data[1], "donvi": data[2]}])
+                const dataArray = fileContent.split('\n').map(line => line.split(',')).map(data => [data[0], { "hoten": data[1], "donvi": data[2] }])
                 let dataMap = new Map(dataArray)
                 resolve(dataMap);
               };
@@ -138,7 +138,7 @@ function getData() {
 `;
 
               for (const user of differentUsersInFile) {
-                resultAll += `Họ tên: ${dataMap.get(user)["hoten"].trim()} - ${dataMap.get(user)["donvi"].trim()} (Facebook: ${user})\n`;
+                resultAll += `${dataMap.get(user)["donvi"].trim()} - ${dataMap.get(user)["hoten"].trim()} (Facebook: ${user})\n`;
               }
 
               document.getElementById("webDataDisplay").value = resultAll;
@@ -149,7 +149,7 @@ function getData() {
 
           async function performComparison() {
             try {
-              const webResults = danhsach_user;
+              const webResults = urlFB;
               const fileInput = document.getElementById('dataFile');
 
               // Kiểm tra xem người dùng đã chọn file hay chưa
