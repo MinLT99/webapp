@@ -1,22 +1,43 @@
 const { shell, ipcRenderer } = require('electron');
-
 console.log("Bắt đầu chạy code");
 const puppeteerExtra = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
-
+const { url } = require('inspector');
 puppeteerExtra.use(StealthPlugin());
-
-// const username = '100089327353144';
-// const password = 'kKIfcuq68';
+// const username = '100072400811145';
+// const password = '2404100082palrr';
 
 //hàm kiểm tra
+
+// const listProfile = [
+//   "https://www.facebook.com/profile.php?id=100013033890023,Lê Thị Hồng,C1",
+//   "https://www.facebook.com/profile.php?id=100058373949348,NSND Trần Dần Troll Dân Chủ Cuội,C1",
+//   "https://www.facebook.com/profile.php?id=100009496400144,Nguyễn Thanh,C1",
+//   "https://www.facebook.com/chulinh.chi.9,Nguyễn Hồng Giang,C2",
+//   "https://www.facebook.com/profile.php?id=100072400811145,Nguyễn Phước Huệ,C2",
+//   "https://www.facebook.com/profile.php?id=100085217756820,Trần Doãn Tuấn,C2",
+//   "https://www.facebook.com/profile.php?id=61556585981720,Bùi Trọng Thiên,C2",
+//   "https://www.facebook.com/profile.php?id=100027995328177,Nguyễn Hoàng Minh,C2",
+//   "https://www.facebook.com/profile.php?id=61556631662238,Trần Minh Luận,C2",
+//   "https://www.facebook.com/profile.php?id=100004395905309,Trần Đức Anh,C2",
+//   "https://www.facebook.com/profile.php?id=61556681122620,Trần Văn Hưng,C2",
+//   "https://www.facebook.com/profile.php?id=100064013104396,Hội Nông dân Cần Giờ,C3",
+//   "https://www.facebook.com/profile.php?id=100055712153511,Vu Huynh,C3",
+//   "https://www.facebook.com/profile.php?id=100047437296800,Nguyễn Hiếu,C3",
+// ]
+const reaction_data = fs.readFileSync("./app/listProfile.txt", "utf8");
+const reaction_url_list = reaction_data
+  .trim()
+  .split("\n")
+  .map((el) => el.trim());
+
 let resultAll = '';
 function getData() {
   (async () => {
     console.log("Bắt đầu khởi tạo trình duyệt");
     const browser = await puppeteerExtra.launch({
-      headless: true,
+      headless: false,
       args: [
         '--no-sandbox',
         '--disable-gpu',
@@ -26,15 +47,11 @@ function getData() {
       ],
       userDataDir: './userData',
     });
-    console.log("Khởi tạo trình duyệt thành công");
-
-    console.log("Tạo mới trang");
     const page = await browser.newPage();
     console.log("Trang mới được tạo");
 
     // Lấy giá trị từ ô textarea
     var linkText = document.getElementById('linkfb').value;
-
     // Tách các đường link bằng dấu xuống dòng
     var links = linkText.split('\n');
 
@@ -51,188 +68,11 @@ function getData() {
         // Mở trang
         await page.goto(link, { waitUntil: 'networkidle2' });
 
+        await page.waitForTimeout(5000);
         console.log("Đợi 5 giây trước khi tìm kiếm phần tử");
-        await page.waitForTimeout(5000);
 
-        //hàm evaluateHandle trả về 1 phần tử
-        const button = await page.evaluateHandle(() => {
-          const elements = Array.from(document.querySelectorAll('div[role="button"]')).filter(el => el.innerText.includes("Tất cả cảm xúc:"));
+        resultAll += `Tiến hành kiểm tra bài viết theo đường dẫn: {${link}}\n`;
 
-          if (elements.length > 0) {
-            return elements[0]
-          }
-          return null;
-        });
-
-        if (button) {
-          console.log("Thực hiện phương thức click");
-          button.click();
-
-          console.log("Đợi 1 giây để load các element");
-          await page.waitForTimeout(1000);
-
-          // let extractedUserData = [];
-          let hasMoreData = true;
-          let old_length = 0;
-
-          //cuộn trang
-          for (let pageCounter = 0; hasMoreData; pageCounter++) {
-            // Thực hiện cuộn trang bằng Puppeteer hoặc một cách khác tùy thuộc vào môi trường của bạn
-            let el_list = await page.$$('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]');
-
-            if (old_length === el_list.length) {
-              break;
-            }
-
-            old_length = el_list.length
-            el_list[el_list.length - 1].scrollIntoView()
-
-            function getRandomIntInclusive(min, max) {
-              min = Math.ceil(min);
-              max = Math.floor(max);
-              return Math.floor(Math.random() * (max - min + 1) + min); //The maximum is inclusive and the minimum is inclusive
-            }
-
-            await page.waitForTimeout(getRandomIntInclusive(2, 5) * 1000);
-          }
-
-          // Trích xuất dữ liệu từ trang hiện tại bằng Puppeteer hoặc cách khác tùy thuộc vào môi trường của bạn
-          let urlFB = await page.$$eval('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]', el_list => {
-            return el_list.map(link => link.href.split(/.__cft/)[0]);
-          });
-          console.log(urlFB);
-          // Hàm đọc người dùng từ file và chuyển thành mảng
-          function readUsersFromFile(file) {
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-
-              reader.onload = function (e) {
-                const fileContent = e.target.result;
-                const dataArray = fileContent.split('\n').map(line => line.split(',')).map(data => [data[0], { "hoten": data[1], "donvi": data[2] }])
-                let dataMap = new Map(dataArray)
-                resolve(dataMap);
-              };
-
-              reader.onerror = function (e) {
-                reject(e);
-              };
-
-              reader.readAsText(file);
-            });
-          }
-
-          // Hàm so sánh hai mảng
-          async function compareArrays(array1, array2) {
-            try {
-              const dataMap = await readUsersFromFile(array2);
-              console.log(dataMap)
-              let fileResults = dataMap.keys()
-              const differentUsersInFile = fileResults.filter(user => {
-                return !array1.includes(user);
-              });
-
-              // Hiển thị kết quả trong textarea
-              resultAll +=
-                `=================================================
-* Danh sách người dùng chưa tương tác: ${link}
-`;
-
-              for (const user of differentUsersInFile) {
-                resultAll += `${dataMap.get(user)["donvi"].trim()} - ${dataMap.get(user)["hoten"].trim()} (Facebook: ${user})\n`;
-              }
-
-              document.getElementById("webDataDisplay").value = resultAll;
-            } catch (error) {
-              console.error('Đã xảy ra lỗi khi đọc file:', error);
-            }
-          }
-
-          async function performComparison() {
-            try {
-              const webResults = urlFB;
-              const fileInput = document.getElementById('dataFile');
-
-              // Kiểm tra xem người dùng đã chọn file hay chưa
-              if (fileInput.files.length > 0) {
-                await compareArrays(webResults, fileInput.files[0]);
-              } else {
-                console.error('Không có tệp tin được chọn.');
-              }
-            } catch (error) {
-              console.error('Đã xảy ra lỗi:', error);
-            }
-          }
-
-          // Chạy hàm so sánh
-          performComparison();
-        }
-
-        //lấy cmt
-
-
-        await page.waitForTimeout(1000);
-        console.log("Đợi 1s để load link khác");
-      } catch (error) {
-        console.error(`Lỗi khi xử lý link ${link}:`, error);
-      }
-    }
-
-    await page.waitForTimeout(50000);
-    console.log("Đợi 5 giây trước khi đóng trình duyệt");
-
-    await browser.close();
-    console.log("Trình duyệt đã đóng");
-  })();
-}
-
-//gọi hàm kiểm tra
-document.getElementById('btnEd').addEventListener('click', () => {
-  resultAll += "Đang chạy khởi chạy tính năng kiểm tra tương tác \n";
-  document.getElementById("webDataDisplay").value = resultAll;
-  getData();
-});
-
-let resultCmt = '';
-function getCmt() {
-  (async () => {
-    console.log("Bắt đầu khởi tạo trình duyệt");
-    const browser = await puppeteerExtra.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-gpu',
-        '--enable-webgl',
-        '--window-size=800,800',
-        '--disable-notifications'
-      ],
-      userDataDir: './userData',
-    });
-    console.log("Khởi tạo trình duyệt thành công");
-
-    console.log("Tạo mới trang");
-    const page = await browser.newPage();
-    console.log("Trang mới được tạo");
-
-    // Lấy giá trị từ ô textarea
-    var linkText = document.getElementById('linkfb').value;
-
-    // Tách các đường link bằng dấu xuống dòng
-    var links = linkText.split('\n');
-
-    await page.goto("https://www.facebook.com", { waitUntil: 'networkidle2' });
-
-    await page.waitForTimeout(5000);
-    for (const link of links) {
-      try {
-        // Mở trang
-        await page.goto(link, { waitUntil: 'networkidle2' });
-
-        console.log(`Đã chạy link: ${link}`);
-
-        console.log("Đợi 5 giây trước khi tìm kiếm phần tử cmt");
-        await page.waitForTimeout(5000);
-
-        //Chọn tất cả các cmt
         const phuHopNhat = await page.evaluateHandle(() => {
           const showAll1 = Array.from(document.querySelectorAll('div[role="button"]')).filter(el => el.innerText.includes("Phù hợp nhất"));
           if (showAll1.length > 0) {
@@ -244,8 +84,6 @@ function getCmt() {
         if (phuHopNhat) {
           phuHopNhat.click()
           console.log("Thực hiện phương thức click PHÙ HỢP NHẤT");
-
-          console.log("Đợi 1 giây để load các element");
           await page.waitForTimeout(1000);
 
           const tatCaCmt = await page.evaluateHandle(() => {
@@ -259,143 +97,198 @@ function getCmt() {
           if (tatCaCmt) {
             tatCaCmt.click();
             console.log("Thực hiện phương thức click TẤT CẢ CMT");
-
             await page.waitForTimeout(2000);
-            console.log("Đợi 2s để load cmt");
 
             try {
               await page.evaluate(() => {
                 let btn_list = Array.from(document.querySelectorAll('div[role="button"] span span[dir="auto"]')).filter(el => el.innerText.includes("Xem thêm"));
                 if (btn_list.length > 0) {
-                  btn_list[0].click()
+                  btn_list[0].click();
                 }
               });
             } catch (err) {
-              console.log(err)
+              console.log(err);
             } finally {
-              // Thêm bất kỳ hành động nào khác sau khi click
               await page.waitForTimeout(5000);
-              let comments = await page.$$eval('div[aria-label*="Bình luận dưới tên"]', commentElements => {
-                return commentElements.map(commentElement => {
-                  const userElement = commentElement.querySelector('span a[aria-hidden="false"]');
-                  const commentTextElement = commentElement.querySelector('span[dir="auto"][lang]');
 
-                  // Kiểm tra xem commentTextElement có tồn tại và có nội dung không trống không
-                  if (commentTextElement && commentTextElement.textContent.trim() !== '') {
-                    const user = userElement ? userElement.textContent : 'Unknown User';
-                    const comment = commentTextElement.textContent.trim();
-                    return { user, comment };
+              let urlCmt = await page.$$eval('div div span a[aria-hidden="false"]', el_list => {
+                return el_list.map(link => link.href.replace(/[\?&]comment_id.*/, ''));
+              });
+
+              let contentCmt = await page.$$eval('div span[lang] div div[style]', content => {
+                return content.map(el => el.textContent.trim());
+              });
+
+              const button = await page.evaluateHandle(() => {
+                const elements = Array.from(document.querySelectorAll('div[role="button"]')).filter(el => el.innerText.includes("Tất cả cảm xúc:"));
+                if (elements.length > 0) {
+                  return elements[0];
+                }
+                return null;
+              });
+
+              if (button) {
+                button.click();
+                await page.waitForTimeout(1000);
+
+                let hasMoreData = true;
+                let old_length = 0;
+                // Cuộn trang để tải thêm dữ liệu
+                while (hasMoreData) {
+                  let el_list = await page.$$('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]');
+
+                  if (old_length === el_list.length) {
+                    hasMoreData = false;
+                  } else {
+                    old_length = el_list.length;
+                    el_list[el_list.length - 1].scrollIntoView();
+
+                    function getRandomIntInclusive(min, max) {
+                      min = Math.ceil(min);
+                      max = Math.floor(max);
+                      return Math.floor(Math.random() * (max - min + 1) + min); // The maximum is inclusive and the minimum is inclusive
+                    }
+                    await page.waitForTimeout(getRandomIntInclusive(2, 5) * 1000);
                   }
-                }).filter(Boolean);
-              });
-              const nonEmptyComments = comments.filter(item => item.comment);
+                }
 
-              console.log(nonEmptyComments);
-              // Hiển thị kết quả trong textarea
-              resultCmt +=
-                `=================================================
-* Người dùng và nội dung bình luận: ${link}\n
-`;
-              nonEmptyComments.forEach(comment => {
-                resultCmt += `User: ${comment.user}\nComment: ${comment.comment}\n\n`;
-              });
+                // Trích xuất dữ liệu từ trang hiện tại
+                let urlFB = await page.$$eval('div[role="dialog"][aria-labelledby] span[dir="auto"] a[role="link"]', el_list => {
+                  return el_list.map(link => link.href.split(/.__cft/)[0]);
+                });
+                let combinedUrls = [...urlCmt, ...urlFB];
 
-              // Gán giá trị của chuỗi vào textarea
-              document.getElementById("webDataDisplayCMT").value = resultCmt;
+                function check(user_info_list, reaction_url_list) {
+                  let user_map = new Map();
+                  let user_url_list = [];
+
+                  user_info_list.map((el) => {
+                    let [url, fullname, donvi] = el.trim().split(",");
+                    user_map.set(url, { fullname, donvi, counter: 0 });
+                    user_url_list.push(url);
+                  });
+
+                  reaction_url_list.forEach((url) => {
+                    if (user_url_list.includes(url)) {
+                      user_map.get(url).counter += 1;
+                    }
+                  });
+
+                  let not_reactive_user = Array.from(user_map.entries())
+                    .filter(([key, value]) => value.counter == 0)
+                    .map(([key, value]) => `[${value.donvi}] ${value.fullname} (${key})}`);
+
+                  let reactive_user = Array.from(user_map.entries())
+                    .filter(([key, value]) => value.counter > 0)
+                    .map(([key, value]) => `[${value.donvi}] ${value.fullname} (${key})}`);
+
+                  let react_counter = 0;
+
+                  for (let item of user_map.values()) {
+                    react_counter += item.counter
+                  }
+                  let donvi = {};
+
+                  Array.from(user_map.entries()).map(([key, value]) => {
+                    if (!Object.keys(donvi).includes(value.donvi)) {
+                      donvi[value.donvi] = 0;
+                    }
+
+                    donvi[value.donvi] += value.counter;
+                  });
+
+                  return { khongtuongtac: not_reactive_user, cotuongtac: reactive_user, thongke: donvi, tongtuongtac: react_counter };
+                }
+
+                // Giả sử listProfile và combinedUrls đã được định nghĩa ở đâu đó trong mã nguồn của bạn
+                let result = check(reaction_url_list, combinedUrls);
+                console.log(result)
+
+                let textArea = document.getElementById("webDataDisplay");
+                resultAll += `- Tổng số lượt tương tác của bài viết: ${combinedUrls.length}\n`;
+                resultAll += `- Tổng số lượt tương tác thuộc đơn vị: ${result.tongtuongtac}\n`;
+                let nguoiNgoai = combinedUrls.length - result.tongtuongtac;
+                resultAll += `- Tổng số lượt tương tác không thuộc đơn vị: ${nguoiNgoai}\n`;
+                resultAll += `- Tổng số lượt cảm xúc của bài viết: ${urlFB.length}\n`;
+                resultAll += `- Tổng số lượt bình luận của bài viết: ${urlCmt.length}\n`;
+
+                urlCmt.forEach((url, index) => {
+                  resultAll += `Tài khoản: {${url}}, bình luận với nội dung: ${contentCmt[index]}\n`;
+                });
+
+                // Format thống kê đơn vị
+                resultAll += "- Tổng số lượng tương tác của đơn vị:\n";
+                for (let key in result.thongke) {
+                  resultAll += `${key}: ${result.thongke[key]}\n`;
+                }
+
+                // Format danh sách người đã tương tác
+                resultAll += "- Danh sách người đã tương tác thuộc đơn vị:\n";
+                result.cotuongtac.forEach((item, index) => {
+                  resultAll += `${index + 1}: ${item}\n`;
+                });
+
+                // Format danh sách người không tương tác
+                resultAll += "- Danh sách người không tương tác thuộc đơn vị:\n";
+                result.khongtuongtac.forEach((item, index) => {
+                  resultAll += `${index + 1}: ${item}\n`;
+                });
+
+                textArea.value = resultAll;
+              }
             }
-
-            console.log("Đợi 1s để lấy dữ liệu chia sẻ")
-            await page.waitForTimeout(1000);
           }
         }
         await page.waitForTimeout(1000);
-        console.log("Đợi 1s để load link khác");
       } catch (error) {
         console.error(`Lỗi khi xử lý link ${link}:`, error);
       }
     }
-
     await page.waitForTimeout(5000);
-    console.log("Đợi 5 giây trước khi đóng trình duyệt");
-
     await browser.close();
     console.log("Trình duyệt đã đóng");
   })();
 }
 
-//gọi hàm kiểm tra
-document.getElementById('btnCmt').addEventListener('click', () => {
-  resultCmt += "Đang chạy khởi chạy tính năng thu thập bình luận \n";
-  document.getElementById("webDataDisplayCMT").value = resultCmt;
-  getCmt();
+//gọi hàm kiểm tra tương tác
+document.getElementById('btnEd').addEventListener('click', () => {
+  document.getElementById("webDataDisplay").value = resultAll;
+  getData();
 });
-
 //xuất kết quả ra file tương tác
-function exportToFile() {
-  // Lấy nội dung từ textarea
-  var textareaContent = document.getElementById('webDataDisplay').value;
-
-  // Tạo đối tượng Blob từ nội dung
-  var blob = new Blob([textareaContent], { type: 'text/plain' });
-
-  // Tạo đường dẫn URL cho Blob
-  var url = window.URL.createObjectURL(blob);
-
-  // Tạo một thẻ a để tạo và tải xuống file
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'Kiểm tra tương tác.txt';
-
-  // Thêm thẻ a vào DOM và kích hoạt sự kiện nhấp để tải xuống
-  document.body.appendChild(a);
-  a.click();
-
-  // Loại bỏ thẻ a khỏi DOM sau khi tải xuống
-  document.body.removeChild(a);
-}
-//xuất kết quả ra file bình luận
-function exportToFileCmt() {
-  // Lấy nội dung từ textarea
-  var textareaContent = document.getElementById('webDataDisplayCMT').value;
-
-  // Tạo đối tượng Blob từ nội dung
-  var blob = new Blob([textareaContent], { type: 'text/plain' });
-
-  // Tạo đường dẫn URL cho Blob
-  var url = window.URL.createObjectURL(blob);
-
-  // Tạo một thẻ a để tạo và tải xuống file
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'Nội dung bình luận.txt';
-
-  // Thêm thẻ a vào DOM và kích hoạt sự kiện nhấp để tải xuống
-  document.body.appendChild(a);
-  a.click();
-
-  // Loại bỏ thẻ a khỏi DOM sau khi tải xuống
-  document.body.removeChild(a);
-}
-
+// function exportToFile() {
+//   // Lấy nội dung từ textarea
+//   var textareaContent = document.getElementById('webDataDisplay').value;
+//   // Tạo đối tượng Blob từ nội dung
+//   var blob = new Blob([textareaContent], { type: 'text/plain' });
+//   // Tạo đường dẫn URL cho Blob
+//   var url = window.URL.createObjectURL(blob);
+//   // Tạo một thẻ a để tạo và tải xuống file
+//   var a = document.createElement('a');
+//   a.href = url;
+//   a.download = 'Kiểm tra tương tác.txt';
+//   // Thêm thẻ a vào DOM và kích hoạt sự kiện nhấp để tải xuống
+//   document.body.appendChild(a);
+//   a.click();
+//   // Loại bỏ thẻ a khỏi DOM sau khi tải xuống
+//   document.body.removeChild(a);
+// }
 //gọi hàm xuất kết quả tương tác
-const exportSelect = document.getElementById("exportSelect");
-const exportDataButton = document.getElementById("exportDataButton");
-
+// const exportSelect = document.getElementById("exportSelect");
+// const exportDataButton = document.getElementById("exportDataButton");
 // Xử lý sự kiện khi người dùng click vào nút "Xuất File"
-exportDataButton.onclick = function () {
-  const selectedOption = exportSelect.value;
+// exportDataButton.onclick = function () {
+//   const selectedOption = exportSelect.value;
 
-  // Kiểm tra lựa chọn của người dùng và thực hiện hành động tương ứng
-  if (selectedOption === "chuaXem") {
-    exportToFile();
-  } else if (selectedOption === "binhLuan") {
-    exportToFileCmt();
-  } else {
-    console.log("Không có chức năng được chọn");
-  }
-}
-
-
+//   // Kiểm tra lựa chọn của người dùng và thực hiện hành động tương ứng
+//   if (selectedOption === "chuaXem") {
+//     exportToFile();
+//   } else if (selectedOption === "binhLuan") {
+//     exportToFileCmt();
+//   } else {
+//     console.log("Không có chức năng được chọn");
+//   }
+// }
 //tải file người dùng lên
 const upload = document.querySelector('.custom-file-upload');
 upload.addEventListener('click', () => {
